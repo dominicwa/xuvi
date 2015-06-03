@@ -26,16 +26,16 @@ namespace UpdateVersionInfo
                     "?", "Shows help/usage information.", h => ShowHelp = true
                 },
                 {
-                    "v|major=", "A numeric major version number greater than zero.", (int v) => Build = v
+                    "v|major=", "A numeric major version number greater than zero.", (int v) => Major = v
                 },
                 {
-                    "m|minor=", "A numeric minor number greater than zero.", (int v) => Build = v
+                    "m|minor=", "A numeric minor number greater than zero.", (int v) => Minor = v
                 },
                 {
                     "b|build=", "A numeric build number greater than zero.", (int v) => Build = v
                 },
                 {
-                    "r|revision=", "A numeric revision number greater than zero.", (int v) => Build = v
+                    "r|revision=", "A numeric revision number greater than zero.", (int v) => Revision = v
                 },
                 {
                     "p|path=", "The path to a C# file to update with version information.", p => VersionCsPath = p

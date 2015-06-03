@@ -25,12 +25,15 @@ namespace UpdateVersionInfo
                 ValidateCommandLine(commandLine);
 
                 Version version = new Version(
-                    commandLine.Major, 
-                    commandLine.Minor, 
-                    commandLine.Build.Value, 
+                    commandLine.Major,
+                    commandLine.Minor,
+                    commandLine.Build.HasValue ? commandLine.Build.Value : 0, 
                     commandLine.Revision.HasValue ? commandLine.Revision.Value : 0);
 
-                UpdateCSVersionInfo(commandLine.VersionCsPath, version);
+                if (!String.IsNullOrEmpty(commandLine.VersionCsPath))
+                {
+                    UpdateCSVersionInfo(commandLine.VersionCsPath, version);
+                }
                 if (!String.IsNullOrEmpty(commandLine.AndroidManifestPath))
                 {
                     UpdateAndroidVersionInfo(commandLine.AndroidManifestPath, version);
@@ -39,7 +42,6 @@ namespace UpdateVersionInfo
                 {
                     UpdateTouchVersionInfo(commandLine.TouchPListPath, version);
                 }
-
             }
             catch (Exception e)
             {
@@ -67,24 +69,28 @@ namespace UpdateVersionInfo
 
         private static void UpdateAndroidVersionInfo(string path, Version version)
         {
+            //https://developer.android.com/tools/publishing/versioning.html
             const string androidNS = "http://schemas.android.com/apk/res/android";
             XName versionCodeAttributeName = XName.Get("versionCode", androidNS);
             XName versionNameAttributeName = XName.Get("versionName", androidNS);
             XDocument doc = XDocument.Load(path);
-            doc.Root.SetAttributeValue(versionCodeAttributeName, version.Build);
-            doc.Root.SetAttributeValue(versionNameAttributeName, version);
+            doc.Root.SetAttributeValue(versionCodeAttributeName, version.Build + "." + version.Revision);
+            doc.Root.SetAttributeValue(versionNameAttributeName, version.Major + "." + version.Minor);
             doc.Save(path);
         }
 
         private static void UpdateTouchVersionInfo(string path, Version version)
         {
+            //https://developer.apple.com/library/mac/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
             XDocument doc = XDocument.Load(path);
             var shortVersionElement = doc.XPathSelectElement("plist/dict/key[string()='CFBundleShortVersionString']");
+            var bundleVersionElement = doc.XPathSelectElement("plist/dict/key[string()='CFBundleVersion']");
             var versionElement = shortVersionElement.NextNode as XElement;
-            versionElement.Value = version.ToString();
+            versionElement.Value = version.Major + "." + version.Minor;
+            versionElement = bundleVersionElement.NextNode as XElement;
+            versionElement.Value = version.Build + "." + version.Revision;
             doc.Save(path);
         }
-
 
         private static void ValidateCommandLine(CommandLineArguments commandLine)
         {
@@ -180,12 +186,20 @@ namespace UpdateVersionInfo
                 XDocument doc = XDocument.Load(path);
                 if (doc.DocumentType.Name == "plist")
                 {
+                    var ok = true;
                     var shortVersionElement = doc.XPathSelectElement("plist/dict/key[string()='CFBundleShortVersionString']");
                     if (shortVersionElement != null)
                     {
                         var valueElement = shortVersionElement.NextNode as XElement;
-                        if (valueElement != null && valueElement.Name == "string") return true;
+                        if (valueElement == null || valueElement.Name != "string") ok = false;
                     }
+                    var bundleVersionElement = doc.XPathSelectElement("plist/dict/key[string()='CFBundleVersion']");
+                    if (bundleVersionElement != null)
+                    {
+                        var valueElement = bundleVersionElement.NextNode as XElement;
+                        if (valueElement == null || valueElement.Name != "string") ok = false;
+                    }
+                    return ok;
                 }
             }
             catch (Exception e)
