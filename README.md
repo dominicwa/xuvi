@@ -21,7 +21,7 @@ You can *run* the tool two ways:
 
 From the help info:
 
-<code>
+```
   -?                         Shows help/usage information.
   -v, --major=VALUE          A numeric major version number greater than zero.
   -m, --minor=VALUE          A numeric minor number greater than zero.
@@ -40,7 +40,7 @@ From the help info:
                                number of seconds today (overrides r flag).
   -d, --doNotExit=VALUE      Prevent app exiting after execution (useful for
                                setting up post-build use).
-</code>
+```
 
 In a typical Xamarin solution you can have multiple projects for iOS, Android and Windows Phones. Each has its own version information. If you want to keep them in sync or increment them all at once you have to manually go through the .NET assembly info, the Android manifest, and iOS plist to do it. XUVI tries to automate that process.
 
@@ -48,7 +48,7 @@ You can use XUVI to manually set the major, minor, build and revision numbers to
 
 Here is an example post build event which is actually setup in the XUVI Visual Studio solution itself:
 
-<code>
+```
 set ROOT=$(SolutionDir)
 set ROOT=Z:\Projects\Personal\XUVI\Source\xuvi\
 
@@ -66,7 +66,7 @@ set A=%ROOT%Version\AndroidManifest.xml
 set T=%ROOT%Version\Info.plist
 
 start cmd /C %XUVIPATH% -v=%MJ% -m=%MN% -b=%B% -r=%R% -ib=%IB% -rs=%RS% -p=%P% -a=%A% -t=%T% -d=true
-</code>
+```
 
 Using that, every time XUVI is built, it increments the build number and stamps the revision number in all three version files, ready for the next build. After a new major or minor public release, you can simply update the above values for MJ and MN.
 
@@ -74,9 +74,9 @@ Note: the ROOT value is overriden to a local mapped path because Visual Studio p
 
 XUVI tries to make intelligent decisions about which which numbers to apply to which keys/attributes under each platform.
 
-# For C# assemblies (portable code, Windows Phone etc.) the major.minor.build.revision numbering works fine and is applied in full to the AssemblyVersion (and AssemblyFileVersion when used).
-# For Android manifests the versionName is given the major.minor format and the versionCode given the build.revision.
-# Similarly to Android, iOS uses the major.minor for its CFBundleShortVersionString attribute and build.revision for its CFBundleVersion attribute.
+1. For C# assemblies (portable code, Windows Phone etc.) the major.minor.build.revision numbering works fine and is applied in full to the AssemblyVersion (and AssemblyFileVersion when used).
+2. For Android manifests the versionName is given the major.minor format and the versionCode given the build.revision.
+3. Similarly to Android, iOS uses the major.minor for its CFBundleShortVersionString attribute and build.revision for its CFBundleVersion attribute.
 
 Android and iOS both describe *three* dot-notation number values (x.x.x) for each field described above. But they don't mention using a fourth (x.x.x.x). It seemed to make sense to simply split the public/private version numbers into a two-dot x.x for each. This means though that XUVI doesn't support public version numbers beyond major.minor. (You'll have to make do with simply using large minor number release e.g. 1.435).
 
