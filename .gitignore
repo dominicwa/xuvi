@@ -1,4 +1,8 @@
-[Bb]in/
+[Bb]in/D*
+[Bb]in/Release/*.config
+[Bb]in/Release/*.pdb
+[Bb]in/Release/*.vshost.exe
+[Bb]in/Release/*.manifest
 [Oo]bj/
 *.user
 *.suo
@@ -25,3 +29,4 @@ _ReSharper*/
 #Temp files
 ~*.xlsx
 ~*.docx
+.DS_Store

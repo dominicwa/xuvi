@@ -20,33 +20,101 @@ namespace UpdateVersionInfo
         static void Main(string[] args)
         {
             var commandLine = new CommandLineArguments(args);
+            var validCL = false;
             try
             {
-                ValidateCommandLine(commandLine);
+                validCL = ValidateCommandLine(commandLine);
 
-                Version version = new Version(
-                    commandLine.Major,
-                    commandLine.Minor,
-                    commandLine.Build.HasValue ? commandLine.Build.Value : 0, 
-                    commandLine.Revision.HasValue ? commandLine.Revision.Value : 0);
+                if (validCL && !commandLine.ShowHelp)
+                {
+                    Version version = new Version(
+                        commandLine.Major,
+                        commandLine.Minor,
+                        commandLine.Build.HasValue ? commandLine.Build.Value : 0,
+                        commandLine.Revision.HasValue ? commandLine.Revision.Value : 0);
 
-                if (!String.IsNullOrEmpty(commandLine.VersionCsPath))
-                {
-                    UpdateCSVersionInfo(commandLine.VersionCsPath, version);
-                }
-                if (!String.IsNullOrEmpty(commandLine.AndroidManifestPath))
-                {
-                    UpdateAndroidVersionInfo(commandLine.AndroidManifestPath, version);
-                }
-                if (!String.IsNullOrEmpty(commandLine.TouchPListPath))
-                {
-                    UpdateTouchVersionInfo(commandLine.TouchPListPath, version);
+                    if (commandLine.RevisionStamp)
+                    {
+                        version = new Version(
+                            version.Major,
+                            version.Minor,
+                            version.Build,
+                            (DateTime.Now.Hour * 60 * 60) + (DateTime.Now.Minute * 60) + DateTime.Now.Second);
+                    }
+                    
+                    if (!String.IsNullOrEmpty(commandLine.VersionCsPath))
+                    {
+                        if (commandLine.IncBuild)
+                        {
+                            version = new Version(
+                                version.Major,
+                                version.Minor,
+                                GetCurrentCSVersionBuild(commandLine.VersionCsPath) + 1,
+                                version.Revision);
+                        }
+                        UpdateCSVersionInfo(commandLine.VersionCsPath, version);
+                    }
+                    if (!String.IsNullOrEmpty(commandLine.AndroidManifestPath))
+                    {
+                        if (commandLine.IncBuild)
+                        {
+                            version = new Version(
+                                version.Major,
+                                version.Minor,
+                                GetCurrentAndroidVersionBuild(commandLine.AndroidManifestPath) + 1,
+                                version.Revision);
+                        }
+                        UpdateAndroidVersionInfo(commandLine.AndroidManifestPath, version);
+                    }
+                    if (!String.IsNullOrEmpty(commandLine.TouchPListPath))
+                    {
+                        if (commandLine.IncBuild)
+                        {
+                            version = new Version(
+                                version.Major,
+                                version.Minor,
+                                GetCurrentTouchVersionBuild(commandLine.TouchPListPath) + 1,
+                                version.Revision);
+                        }
+                        UpdateTouchVersionInfo(commandLine.TouchPListPath, version);
+                    }
+
+                    Console.WriteLine("Version information successfully updated.");
                 }
             }
             catch (Exception e)
             {
                 WriteHelp(commandLine, "An unexpected error was encountered:" + e.Message);
             }
+            try
+            {
+                if (!validCL || commandLine.DoNotExit)
+                {
+                    Console.WriteLine("Waiting for key press before exiting...");
+                    ConsoleKeyInfo key = Console.ReadKey(true);
+                }
+            }
+            catch (Exception e)
+            {
+                WriteHelp(commandLine, "An unexpected error was encountered:" + e.Message);
+            }
+        }
+
+        private static int GetCurrentCSVersionBuild(string path)
+        {
+            String contents;
+            using (var reader = new StreamReader(path))
+            {
+                contents = reader.ReadToEnd();
+            }
+            contents = assemblyVersionRegEx.Matches(contents)[0].Value;
+            contents = contents.Substring(contents.IndexOf('"', "[assembly: System.Reflection.AssemblyVersion(".Length));
+            contents = contents.Substring(1, contents.IndexOf('"', 1) - 1);
+            contents = contents.Substring(contents.IndexOf('.') + 1);
+            contents = contents.Substring(contents.IndexOf('.') + 1);
+            contents = contents.Substring(0, contents.IndexOf('.'));
+            //Console.WriteLine(contents);
+            return int.Parse(contents);
         }
 
         private static void UpdateCSVersionInfo(string path, Version version)
@@ -67,6 +135,17 @@ namespace UpdateVersionInfo
             }
         }
 
+        private static int GetCurrentAndroidVersionBuild(string path)
+        {
+            const string androidNS = "http://schemas.android.com/apk/res/android";
+            XName versionCodeAttributeName = XName.Get("versionCode", androidNS);
+            XDocument doc = XDocument.Load(path);
+            var contents = doc.Root.Attribute(versionCodeAttributeName).Value;
+            contents = contents.Substring(0, contents.IndexOf('.'));
+            //Console.WriteLine(contents);
+            return int.Parse(contents);
+        }
+
         private static void UpdateAndroidVersionInfo(string path, Version version)
         {
             //https://developer.android.com/tools/publishing/versioning.html
@@ -77,6 +156,17 @@ namespace UpdateVersionInfo
             doc.Root.SetAttributeValue(versionCodeAttributeName, version.Build + "." + version.Revision);
             doc.Root.SetAttributeValue(versionNameAttributeName, version.Major + "." + version.Minor);
             doc.Save(path);
+        }
+
+        private static int GetCurrentTouchVersionBuild(string path)
+        {
+            XDocument doc = XDocument.Load(path);
+            var bundleVersionElement = doc.XPathSelectElement("plist/dict/key[string()='CFBundleVersion']");
+            var versionElement = bundleVersionElement.NextNode as XElement;
+            var contents = versionElement.Value;
+            contents = contents.Substring(0, contents.IndexOf('.'));
+            //Console.WriteLine(contents);
+            return int.Parse(contents);
         }
 
         private static void UpdateTouchVersionInfo(string path, Version version)
@@ -92,12 +182,12 @@ namespace UpdateVersionInfo
             doc.Save(path);
         }
 
-        private static void ValidateCommandLine(CommandLineArguments commandLine)
+        private static bool ValidateCommandLine(CommandLineArguments commandLine)
         {
             if (commandLine.ShowHelp)
             {
                 WriteHelp(commandLine);
-                return;
+                return true;
             }
             var errors = new System.Text.StringBuilder();
             if (commandLine.Major < 0)
@@ -108,9 +198,9 @@ namespace UpdateVersionInfo
             {
                 errors.AppendLine("You must supply a positive minor version number.");
             }
-            if (!commandLine.Build.HasValue)
+            if (!commandLine.Build.HasValue && !commandLine.IncBuild)
             {
-                errors.AppendLine("You must supply a numeric build number.");
+                errors.AppendLine("You must supply a numeric build number (or set incremental build flag to true).");
             }
             if (String.IsNullOrEmpty(commandLine.VersionCsPath) || !IsValidCSharpVersionFile(commandLine.VersionCsPath))
             {
@@ -127,7 +217,9 @@ namespace UpdateVersionInfo
             if (errors.Length > 0)
             {
                 WriteHelp(commandLine, "Invalid command line:\n" + errors.ToString());
+                return false;
             }
+            return true;
         }
 
         private static bool IsValidCSharpVersionFile(String path)
