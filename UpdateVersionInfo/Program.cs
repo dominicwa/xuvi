@@ -39,7 +39,7 @@ namespace UpdateVersionInfo
                             version.Major,
                             version.Minor,
                             version.Build,
-                            (DateTime.Now.Hour * 60 * 60) + (DateTime.Now.Minute * 60) + DateTime.Now.Second);
+                            ((DateTime.Now.Hour * 60 * 60) + (DateTime.Now.Minute * 60) + DateTime.Now.Second) / 2);
                     }
                     
                     if (!String.IsNullOrEmpty(commandLine.VersionCsPath))
@@ -141,7 +141,7 @@ namespace UpdateVersionInfo
             XName versionCodeAttributeName = XName.Get("versionCode", androidNS);
             XDocument doc = XDocument.Load(path);
             var contents = doc.Root.Attribute(versionCodeAttributeName).Value;
-            contents = contents.Substring(0, contents.IndexOf('.'));
+            //contents = contents.Substring(0, contents.IndexOf('.'));
             //Console.WriteLine(contents);
             return int.Parse(contents);
         }
@@ -153,7 +153,7 @@ namespace UpdateVersionInfo
             XName versionCodeAttributeName = XName.Get("versionCode", androidNS);
             XName versionNameAttributeName = XName.Get("versionName", androidNS);
             XDocument doc = XDocument.Load(path);
-            doc.Root.SetAttributeValue(versionCodeAttributeName, version.Build + "." + version.Revision);
+            doc.Root.SetAttributeValue(versionCodeAttributeName, version.Build);
             doc.Root.SetAttributeValue(versionNameAttributeName, version.Major + "." + version.Minor);
             doc.Save(path);
         }

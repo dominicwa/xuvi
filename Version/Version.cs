@@ -13,5 +13,5 @@ using System.Resources;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: NeutralResourcesLanguage("en")]
-[assembly: System.Reflection.AssemblyVersion("0.1.42.59140")]
-[assembly: System.Reflection.AssemblyFileVersion("0.1.42.59140")]
+[assembly: System.Reflection.AssemblyVersion("0.1.56.330")]
+[assembly: System.Reflection.AssemblyFileVersion("0.1.56.330")]
