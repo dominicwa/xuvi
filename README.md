@@ -1,6 +1,9 @@
 Xamarin Update Version Info Tool
 =========
 
+> **Note**
+> XUVI is no longer maintained. (Support for Xamarin ended May 1, 2024.)
+
 XUVI is a command line tool for automatically updating version information across multiple platforms in a <a href="http://xamarin.com">Xamarin</a> project.
 
 <strong>Note:</strong> XUVI is a fork of the UpdateVersionInfo project found in the <a href="https://github.com/soltechinc/soltechxf">SolTech Xamarin Forms Toolkit</a>.
